@@ -9,4 +9,5 @@ public class ControlMercaApplication {
     public static void main(String[] args) {
         SpringApplication.run(ControlMercaApplication.class, args);
     }
+
 }

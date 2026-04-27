@@ -2,53 +2,263 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Control de Mercadería</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MULTICAR - Control de Mercadería</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="container mt-5">
-
-    <h2>Registrar Producto Avariado</h2>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     
-    <form th:action="@{/guardar}" th:object="${mercaderia}" method="post" class="row g-3 mb-5">
-        <div class="col-md-3">
-            <input type="text" th:field="*{codigoInterno}" class="form-control" placeholder="Código">
-        </div>
-        <div class="col-md-5">
-            <input type="text" th:field="*{descripcion}" class="form-control" placeholder="Descripción">
-        </div>
-        <div class="col-md-2">
-            <select th:field="*{estado}" class="form-control">
-                <option value="Avariado">Avariado</option>
-                <option value="Vencido">Vencido</option>
-                <option value="Roto">Roto</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-            <button type="submit" class="btn btn-primary w-100">Guardar</button>
-        </div>
-    </form>
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f8fafc; 
+            color: #334155;
+            /* Evita que aparezca el cursor de texto en elementos generales */
+            user-select: none;
+        }
+        
+        .app-header {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+        }
 
-    <hr>
+        .btn-excel {
+            background-color: #ffffff;
+            color: #15803d;
+            border: 1.5px solid #15803d;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            display: inline-flex;
+            align-items: center;
+        }
+        .btn-excel:hover {
+            background-color: #15803d;
+            color: #ffffff;
+        }
 
-    <h3>Inventario de Mermas</h3>
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Código</th>
-                <th>Descripción</th>
-                <th>Estado</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr th:each="m : ${lista}">
-                <td th:text="${m.id}"></td>
-                <td th:text="${m.codigoInterno}"></td>
-                <td th:text="${m.descripcion}"></td>
-                <td th:text="${m.estado}"></td>
-            </tr>
-        </tbody>
-    </table>
+        .card-stat { 
+            border: none;
+            border-radius: 10px;
+            background: white;
+            cursor: default; /* Quita el cursor de texto */
+        }
+        .border-pending { border-left: 5px solid #ef4444 !important; }
+        .border-solved { border-left: 5px solid #22c55e !important; }
 
+        .table-custom {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+        }
+        .table-custom thead {
+            background-color: #1e293b;
+            color: white;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+
+        /* Permitir selección de texto solo en la tabla para copiar códigos si es necesario */
+        .table-custom tbody {
+            user-select: text;
+        }
+
+        .btn-accion { 
+            color: #64748b; 
+            text-decoration: none; 
+            font-size: 0.75rem; 
+            font-weight: 700;
+            padding: 4px 8px;
+        }
+        .btn-accion:hover { color: #1e293b; }
+
+        .badge-status {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.4em 0.8em;
+            border-radius: 6px;
+        }
+
+        /* Estilo para que los inputs sí tengan cursor pero no historial */
+        input, select, textarea {
+            user-select: text !important;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="app-header shadow-sm">
+        <div class="container d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+                <img src="/images/logo.png" alt="MULTICAR" style="height: 50px; width: auto; margin-right: 18px; object-fit: contain;">
+                
+                <div style="border-left: 2px solid #e2e8f0; padding-left: 18px;">
+                    <small class="text-muted text-uppercase fw-semibold" style="font-size: 0.75rem; letter-spacing: 1.5px; cursor: default;">Registro de Mercaderías Averiadas</small>
+                </div>
+            </div>
+            <div>
+                <a th:href="@{/exportar}" class="btn btn-excel px-4 py-2 fw-bold shadow-sm">
+                    <svg xmlns="http://www.w3.org/2001/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-spreadsheet me-2" viewBox="0 0 16 16">
+                        <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zM13 5h-3V2L13 5zM2 9h12v5H2V9zm0-1V2a1 1 0 0 1 1-1h5v4h4v3H2z"/>
+                    </svg>
+                    Exportar Reporte
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="row mb-4 g-3">
+            <div class="col-md-3">
+                <div class="card card-stat border-pending p-3 shadow-sm">
+                    <span class="small text-muted fw-bold">PENDIENTES</span>
+                    <h2 class="mb-0 text-danger fw-bold" th:text="${totalPendientes}">0</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-stat border-solved p-3 shadow-sm">
+                    <span class="small text-muted fw-bold">SOLUCIONADOS</span>
+                    <h2 class="mb-0 text-success fw-bold" th:text="${totalSolucionados}">0</h2>
+                </div>
+            </div>
+        </div>
+
+        <div th:if="${alerta}" class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-4" role="alert">
+            <strong th:text="${alerta}"></strong>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: 12px;">
+            <h5 class="mb-3 fw-bold text-dark">Nuevo Registro</h5>
+            <form th:action="@{/guardar}" th:object="${mercaderia}" method="post" class="row g-3" autocomplete="off" id="mainForm">
+                <input type="hidden" th:field="*{id}">
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold">Fecha</label>
+                    <input type="text" th:field="*{fechaManual}" class="form-control" id="inputFecha" placeholder="DD/MM/AAAA" autocomplete="off">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold">Código</label>
+                    <input type="text" th:field="*{codigoInterno}" class="form-control" required autocomplete="off">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Proveedor</label>
+                    <input type="text" th:field="*{proveedor}" class="form-control" required autocomplete="off">
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label small fw-bold">Descripción</label>
+                    <input type="text" th:field="*{descripcion}" class="form-control" autocomplete="off">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold">Cantidad</label>
+                    <input type="number" th:field="*{cantidad}" class="form-control" id="inputCantidad" autocomplete="off">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold">Observación</label>
+                    <input type="text" th:field="*{observacion}" class="form-control" autocomplete="off">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Estado</label>
+                    <select th:field="*{estado}" class="form-select">
+                        <option value="Averiado">Averiado</option>
+                        <option value="Nota de Credito">Nota de Crédito</option>
+                        <option value="SOLUCIONADO">SOLUCIONADO</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-dark w-100 fw-bold py-2" id="btnGuardar">GUARDAR REGISTRO</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="row mb-3 g-2 align-items-center">
+            <div class="col-md-8">
+                <form th:action="@{/}" method="get" class="d-flex gap-2">
+                    <input type="hidden" name="verSolucionados" th:value="${modoSolucionados}">
+                    <select name="p" class="form-select form-select-sm" style="width: 220px;" onchange="this.form.submit()">
+                        <option value="">-- Filtrar por Proveedor --</option>
+                        <option th:each="prov : ${proveedores}" th:value="${prov}" th:text="${prov}" th:selected="${prov == pSeleccionado}"></option>
+                    </select>
+                    <input type="text" name="q" class="form-control form-control-sm" placeholder="Buscar por código..." style="width: 200px;" autocomplete="off">
+                    <button type="submit" class="btn btn-secondary btn-sm px-3">Buscar</button>
+                </form>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="btn-group shadow-sm">
+                    <a th:href="@{/(verSolucionados=false, p=${pSeleccionado})}" class="btn btn-sm btn-outline-danger px-3" th:classappend="${!modoSolucionados} ? 'active'">Pendientes</a>
+                    <a th:href="@{/(verSolucionados=true, p=${pSeleccionado})}" class="btn btn-sm btn-outline-success px-3" th:classappend="${modoSolucionados} ? 'active'">Solucionados</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive table-custom mb-5">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-3">Fecha</th>
+                        <th>Código</th>
+                        <th>Proveedor</th>
+                        <th>Descripción</th>
+                        <th>Cant.</th>
+                        <th>Estado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody style="border-top: none;">
+                    <tr th:each="m : ${lista}" class="align-middle">
+                        <td class="ps-3" th:text="${m.fechaManual}"></td>
+                        <td class="fw-bold text-dark" th:text="${m.codigoInterno}"></td>
+                        <td th:text="${m.proveedor}"></td>
+                        <td th:text="${m.descripcion}"></td>
+                        <td th:text="${m.cantidad}"></td>
+                        <td>
+                            <span th:text="${m.estado}" 
+                                  th:class="${m.estado == 'SOLUCIONADO'} ? 'badge badge-status bg-success-subtle text-success border border-success' : 'badge badge-status bg-danger-subtle text-danger border border-danger'">
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <a th:href="@{/editar/{id}(id=${m.id})}" class="btn-accion">EDITAR</a>
+                            <a th:if="${m.estado != 'SOLUCIONADO'}" th:href="@{/solucionar/{id}(id=${m.id})}" class="btn-accion text-success">SOLUCIONAR</a>
+                            <a th:href="@{/borrar/{id}(id=${m.id})}" class="btn-accion text-danger" onclick="return confirm('¿Eliminar este registro?')">BORRAR</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script th:inline="javascript">
+        const inputFecha = document.getElementById('inputFecha');
+        const inputCantidad = document.getElementById('inputCantidad');
+        const mainForm = document.getElementById('mainForm');
+        const inputs = Array.from(mainForm.querySelectorAll('input:not([type="hidden"])'));
+
+        inputFecha.addEventListener('input', (e) => {
+            let val = e.target.value.replace(/\D/g, '');
+            if (val.length >= 2) e.target.value = val.slice(0, 2) + '/' + val.slice(2, 4);
+        });
+
+        inputCantidad.addEventListener('focus', () => inputCantidad.select());
+
+        inputs.forEach((input, index) => {
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (input.id === 'inputFecha' && input.value.length === 5) {
+                        input.value += '/' + new Date().getFullYear();
+                    }
+                    if (index < inputs.length - 1) {
+                        const nextInput = inputs[index + 1];
+                        nextInput.focus();
+                        if (nextInput.id === 'inputCantidad') nextInput.select();
+                    } else {
+                        document.getElementById('btnGuardar').click();
+                    }
+                }
+            });
+        });
+    </script>
 </body>
 </html>
