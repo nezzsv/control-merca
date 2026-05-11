@@ -141,7 +141,9 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small fw-bold">Código</label>
-                    <input type="text" th:field="*{codigoInterno}" class="form-control" required autocomplete="off">
+                    <input type="text" th:field="*{codigoInterno}" class="form-control"
+                    required autocomplete="off"
+                    oninput="this.value=this.value.replace(/[^0-9]/g,'')">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small fw-bold">Proveedor</label>
@@ -221,8 +223,13 @@
                         <td class="text-center">
                             <a th:href="@{/editar/{id}(id=${m.id})}" class="btn-accion">EDITAR</a>
                             <a th:if="${m.estado != 'SOLUCIONADO'}" th:href="@{/solucionar/{id}(id=${m.id})}" class="btn-accion text-success">SOLUCIONAR</a>
-                            <a th:href="@{/borrar/{id}(id=${m.id})}" class="btn-accion text-danger" onclick="return confirm('¿Eliminar este registro?')">BORRAR</a>
-                        </td>
+                            <a href="#" 
+                                class="btn-accion text-danger"
+                                th:attr="data-id=${m.id}, data-url=@{/borrar/{id}(id=${m.id}, verSolucionados=${modoSolucionados}, p=${pSeleccionado})}"
+                                onclick="abrirConfirmacion(this)">
+                                BORRAR
+                            </a>
+                        </a>
                     </tr>
                 </tbody>
             </table>
@@ -235,11 +242,21 @@
         const mainForm = document.getElementById('mainForm');
         const inputs = Array.from(mainForm.querySelectorAll('input:not([type="hidden"])'));
 
-        inputFecha.addEventListener('input', (e) => {
-            let val = e.target.value.replace(/\D/g, '');
-            if (val.length >= 2) e.target.value = val.slice(0, 2) + '/' + val.slice(2, 4);
-        });
+inputFecha.addEventListener('input', (e) => {
+    let val = e.target.value.replace(/\D/g, '');
 
+    if (val.length <= 2) {
+        e.target.value = val;
+    }
+
+    else if (val.length <= 4) {
+        e.target.value = val.slice(0, 2) + '/' + val.slice(2);
+    }
+
+    else {
+        e.target.value = val.slice(0, 2) + '/' + val.slice(2, 4) + '/' + val.slice(4, 8);
+    }
+});
         inputCantidad.addEventListener('focus', () => inputCantidad.select());
 
         inputs.forEach((input, index) => {
@@ -259,6 +276,40 @@
                 }
             });
         });
+
+        function abrirConfirmacion(el) {
+    const url = el.getAttribute("data-url");
+    document.getElementById("confirmDeleteBtn").setAttribute("href", url);
+    document.getElementById("confirmBox").style.display = "flex";
+}
+
+function cerrarConfirmacion() {
+    document.getElementById("confirmBox").style.display = "none";
+}
     </script>
+    <div id="confirmBox" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+background:rgba(0,0,0,0.4); justify-content:center; align-items:center;">
+
+    <div style="background:white; padding:20px; border-radius:10px; width:300px; text-align:center;">
+        <h5 style="margin-bottom:10px;">Confirmar eliminación</h5>
+
+        <p style="font-size:14px; color:#555;">
+            ¿Seguro que quieres eliminar este registro?
+        </p>
+
+        <div style="margin-top:15px; display:flex; justify-content:space-between;">
+            <button onclick="cerrarConfirmacion()" 
+                    style="padding:6px 12px; border:1px solid #ccc; background:white; border-radius:5px;">
+                Cancelar
+            </button>
+
+            <a id="confirmDeleteBtn"
+               style="padding:6px 12px; background:#dc2626; color:white; border-radius:5px; text-decoration:none;">
+                Eliminar
+            </a>
+        </div>
+    </div>
+
+</div>
 </body>
 </html>

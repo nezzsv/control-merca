@@ -50,16 +50,31 @@ public class MercaderiaController {
         return "index";
     }
 
-    @PostMapping("/guardar")
-    public String guardar(@ModelAttribute Mercaderia mercaderia, RedirectAttributes ra) {
-        if (mercaderia.getId() == null) {
-            if (repository.findByCodigoInterno(mercaderia.getCodigoInterno()).isPresent()) {
-                ra.addFlashAttribute("alerta", "¡Atención! El código " + mercaderia.getCodigoInterno() + " ya existe.");
-            }
-        }
-        repository.save(mercaderia);
+@PostMapping("/guardar")
+public String guardar(@ModelAttribute Mercaderia mercaderia, RedirectAttributes ra) {
+
+    if (!mercaderia.getCodigoInterno().matches("\\d+")) {
+        ra.addFlashAttribute("alerta", "El código solo puede contener números.");
         return "redirect:/";
     }
+
+    mercaderia.setProveedor(mercaderia.getProveedor().toUpperCase());
+    if (mercaderia.getDescripcion() != null) {
+        mercaderia.setDescripcion(mercaderia.getDescripcion().toUpperCase());
+    }
+
+    var existente = repository.findByCodigoInterno(mercaderia.getCodigoInterno());
+
+    if (existente.isPresent()) {
+        if (mercaderia.getId() == null || !existente.get().getId().equals(mercaderia.getId())) {
+            ra.addFlashAttribute("alerta", "El código " + mercaderia.getCodigoInterno() + " ya existe.");
+            return "redirect:/";
+        }
+    }
+
+    repository.save(mercaderia);
+    return "redirect:/";
+}
 
     @GetMapping("/solucionar/{id}")
     public String solucionar(@PathVariable Long id) {
@@ -70,22 +85,38 @@ public class MercaderiaController {
         return "redirect:/";
     }
 
-    @GetMapping("/borrar/{id}")
-    public String borrar(@PathVariable Long id) {
-        repository.deleteById(id);
-        return "redirect:/";
-    }
+@GetMapping("/borrar/{id}")
+public String borrar(@PathVariable Long id,
+                      @RequestParam(name = "verSolucionados", defaultValue = "false") boolean verSolucionados,
+                      @RequestParam(name = "p", required = false) String proveedor) {
 
-    @GetMapping("/editar/{id}")
-    public String editar(@PathVariable Long id, Model model) {
-        Mercaderia m = repository.findById(id).orElse(new Mercaderia());
-        model.addAttribute("mercaderia", m);
-        model.addAttribute("lista", repository.findAll().stream().filter(x -> !"SOLUCIONADO".equals(x.getEstado())).collect(Collectors.toList()));
-        model.addAttribute("proveedores", repository.findDistinctProveedores());
-        model.addAttribute("totalPendientes", repository.countByEstadoNot("SOLUCIONADO"));
-        model.addAttribute("totalSolucionados", repository.countByEstado("SOLUCIONADO"));
-        return "index";
-    }
+    repository.deleteById(id);
+
+    return "redirect:/?verSolucionados=" + verSolucionados + 
+           (proveedor != null ? "&p=" + proveedor : "");
+}
+
+ @GetMapping("/editar/{id}")
+public String editar(@PathVariable Long id, Model model,
+                     @RequestParam(name = "verSolucionados", defaultValue = "false") boolean verSolucionados) {
+
+    Mercaderia m = repository.findById(id).orElse(new Mercaderia());
+
+    List<Mercaderia> listaTotal = repository.findAll();
+
+    List<Mercaderia> listaFiltrada = listaTotal.stream()
+        .filter(x -> verSolucionados ? "SOLUCIONADO".equals(x.getEstado()) : !"SOLUCIONADO".equals(x.getEstado()))
+        .toList();
+
+    model.addAttribute("mercaderia", m);
+    model.addAttribute("lista", listaFiltrada);
+    model.addAttribute("proveedores", repository.findDistinctProveedores());
+    model.addAttribute("modoSolucionados", verSolucionados);
+    model.addAttribute("totalPendientes", repository.countByEstadoNot("SOLUCIONADO"));
+    model.addAttribute("totalSolucionados", repository.countByEstado("SOLUCIONADO"));
+
+    return "index";
+}
 
     @GetMapping("/exportar")
     public void exportarAExcel(HttpServletResponse response) throws IOException {
